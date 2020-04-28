@@ -59,11 +59,9 @@ class CoordinatelessFunction(ufl.Coefficient):
                                            functionspaceimpl.MixedFunctionSpace)), \
             "Can't make a CoordinatelessFunction defined on a " + str(type(function_space))
 
-        # build UFL mesh with explicitly created UFL coordinates vector element 
-        # (where, notably, dim = topological_dimension) then build a function 
-        # space on this mesh.
-        e = ufl.VectorElement("Lagrange", function_space.mesh().ufl_cell(), 1, dim=function_space.mesh().ufl_cell().topological_dimension())
-        mesh = ufl.Mesh(e)
+        # build UFL mesh and UFL function space with dimension as stored 
+        # in the firedrake FunctionSpace's UFL element.
+        mesh = ufl.Mesh(function_space.ufl_element())
         V = ufl.FunctionSpace(mesh, function_space.ufl_element())
         ufl.Coefficient.__init__(self, V)
 
