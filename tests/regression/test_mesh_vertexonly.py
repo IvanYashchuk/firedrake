@@ -40,17 +40,28 @@ parentmeshes = [
 def test_pic_swarm_in_plex(parentmesh):
     """Generate points in cell midpoints of mesh `parentmesh` and check correct
     swarm is created in plex."""
+
+    # Setup
+    
     parentmesh.init()
     pointcoords = cell_midpoints(parentmesh)
     plex = parentmesh.topology._plex
     swarm = mesh._pic_swarm_in_plex(plex, pointcoords)
-    # Check comm sizes match
-    assert plex.comm.size == swarm.comm.size
     # Get point coords on current MPI rank
     localpointcoords = np.copy(swarm.getField("DMSwarmPIC_coor"))
     swarm.restoreField("DMSwarmPIC_coor")
     if len(pointcoords.shape) > 1:
         localpointcoords = np.reshape(localpointcoords, (-1, pointcoords.shape[1]))
+    # Turn this into a number of points locally and MPI globally before 
+    # doing any tests to avoid making tests hang should a failure occur 
+    # on not all MPI ranks
+    nptslocal = len(localpointcoords)
+    nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
+
+    # Tests
+
+    # Check comm sizes match
+    assert plex.comm.size == swarm.comm.size
     # check local points are found in list of points
     for p in localpointcoords:
         assert np.any(np.isclose(p, pointcoords))
@@ -61,8 +72,6 @@ def test_pic_swarm_in_plex(parentmesh):
     assert len(localpointcoords) == parentmesh.cell_set.size
     # Check total number of points on all MPI ranks is correct
     # (excluding ghost cells in the halo)
-    nptslocal = len(localpointcoords)
-    nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
     assert nptsglobal == len(pointcoords)
     assert nptsglobal == swarm.getSize()
     # Check each cell has the correct point associated with it
@@ -70,7 +79,6 @@ def test_pic_swarm_in_plex(parentmesh):
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
-@pytest.mark.skip(reason="hangs forever at present")
 def test_pic_swarm_in_plex_parallel(parentmesh):
     test_pic_swarm_in_plex(parentmesh)
 
@@ -79,7 +87,6 @@ def test_pic_swarm_in_plex_2d_2procs():
     test_pic_swarm_in_plex(UnitSquareMesh(1,1))
 
 @pytest.mark.parallel(nprocs=3) ## nprocs > total number of mesh cells
-@pytest.mark.skip(reason="hangs forever at present")
 def test_pic_swarm_in_plex_2d_3procs():
     test_pic_swarm_in_plex(UnitSquareMesh(1,1))
 
@@ -180,7 +187,6 @@ def test_functionspaces(parentmesh, family, degree):
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
-@pytest.mark.skip(reason="hangs forever at present")
 def test_functionspaces_parallel(parentmesh, family, degree):
     test_functionspaces(parentmesh, family, degree)
 
