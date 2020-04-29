@@ -84,6 +84,7 @@ def test_pic_swarm_in_plex_2d_3procs():
 # Mesh Generation Tests
 
 def verify_vertexonly_mesh(m, vm, vertexcoords, gdim):
+    """Assumes all vertexcoords are all in vm"""
     assert m.geometric_dimension() == gdim
     # Correct dims
     assert vm.geometric_dimension() == gdim
@@ -96,7 +97,15 @@ def verify_vertexonly_mesh(m, vm, vertexcoords, gdim):
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
-    # TODO
+    assert np.shape(vm.cell_closure) == (len(vertexcoords), 1)
+    with pytest.raises(AttributeError):
+        vm.cell_to_facets
+    assert vm.num_cells == len(vertexcoords)
+    assert vm.num_facets == 0
+    assert vm.num_faces == vm.num_entities(2) == 0
+    assert vm.num_edges == vm.num_entities(1) == 0
+    assert vm.num_vertices == vm.num_entities(0) == vm.num_cells
+
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 def test_generate(parentmesh):
@@ -129,6 +138,7 @@ def _test_functionspace(vm, family, degree):
         f.interpolate(x+y+z)
     # Get exact values at coordinates
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
+    # assert f.dat.data_ro == sum(vm.coordinates.dat.data_ro , #over correct index - should be in correct order - also use allclose)
     for coord in vm.coordinates.dat.data_ro:
         # .at doesn't work on immersed manifolds
         # assert f.at(coord) == sum(coord)

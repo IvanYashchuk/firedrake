@@ -1089,26 +1089,12 @@ class VertexOnlyMeshTopology(MeshTopology):
     def _facets(self, kind):
         return None
 
-    # @utils.cached_property
-    # def cell_to_facets(self):
-    #     """Returns a :class:`op2.Dat` that maps from a cell index to the local
-    #     facet types on each cell, including the relevant subdomain markers.
-
-    #     The `i`-th local facet on a cell with index `c` has data
-    #     `cell_facet[c][i]`. The local facet is exterior if
-    #     `cell_facet[c][i][0] == 0`, and interior if the value is `1`.
-    #     The value `cell_facet[c][i][1]` returns the subdomain marker of the
-    #     facet.
-    #     """
-    #     cell_facets = dmplex.cell_facet_labeling(self._plex,
-    #                                              self._cell_numbering,
-    #                                              self.cell_closure)
-    #     if isinstance(self.cell_set, op2.ExtrudedSet):
-    #         dataset = DataSet(self.cell_set.parent, dim=cell_facets.shape[1:])
-    #     else:
-    #         dataset = DataSet(self.cell_set, dim=cell_facets.shape[1:])
-    #     return op2.Dat(dataset, cell_facets, dtype=cell_facets.dtype,
-    #                    name="cell-to-local-facet-dat")
+    @utils.cached_property
+    def cell_to_facets(self):
+        """Raises an AttributeError since cells in a 
+        `VertexOnlyMeshTopology` have no facets.
+        """
+        raise AttributeError("Cells in a VertexOnlyMeshTopology have no facets.")
 
     def create_section(self, nodes_per_entity, real_tensorproduct=False):
         """Create a PETSc Section describing a function space.
@@ -1117,14 +1103,6 @@ class VertexOnlyMeshTopology(MeshTopology):
         :returns: a new PETSc Section.
         """
         return dmswarm.create_section(self, nodes_per_entity, on_base=real_tensorproduct)
-
-    # def node_classes(self, nodes_per_entity, real_tensorproduct=False):
-    #     """Compute node classes given nodes per entity.
-
-    #     :arg nodes_per_entity: number of function space nodes per topological entity.
-    #     :returns: the number of nodes in each of core, owned, and ghost classes.
-    #     """
-    #     return tuple(np.dot(nodes_per_entity, self._entity_classes))
 
     def make_cell_node_list(self, global_numbering, entity_dofs, offsets):
         """Builds the DoF mapping.
@@ -1135,29 +1113,6 @@ class VertexOnlyMeshTopology(MeshTopology):
         """
         return dmswarm.get_cell_nodes(self, global_numbering,
                                       entity_dofs, offsets)
-
-    # def make_dofs_per_plex_entity(self, entity_dofs):
-    #     """Returns the number of DoFs per plex entity for each stratum,
-    #     i.e. [#dofs / plex vertices, #dofs / plex edges, ...].
-
-    #     :arg entity_dofs: FInAT element entity DoFs
-    #     """
-    #     return [len(entity_dofs[d][0]) for d in sorted(entity_dofs)]
-
-    # def make_offset(self, entity_dofs, ndofs, real_tensorproduct=False):
-    #     """Returns None (only for extruded use)."""
-    #     return None
-
-    # def _order_data_by_cell_index(self, column_list, cell_data):
-    #     return cell_data[column_list]
-
-    # def cell_orientations(self):
-    #     """Return the orientation of each cell in the mesh.
-
-    #     Use :func:`init_cell_orientations` on the mesh *geometry* to initialise."""
-    #     if not hasattr(self, '_cell_orientations'):
-    #         raise RuntimeError("No cell orientations found, did you forget to call init_cell_orientations?")
-    #     return self._cell_orientations
 
     def num_cells(self):
         return self.num_vertices()
@@ -1179,90 +1134,6 @@ class VertexOnlyMeshTopology(MeshTopology):
             return 0
         else:
             return self.num_vertices()
-
-    # @utils.cached_property
-    # def cell_set(self):
-    #     size = list(self._entity_classes[self.cell_dimension(), :])
-    #     return op2.Set(size, "Cells", comm=self.comm)
-
-    # def cell_subset(self, subdomain_id, all_integer_subdomain_ids=None):
-    #     """Return a subset over cells with the given subdomain_id.
-
-    #     :arg subdomain_id: The subdomain of the mesh to iterate over.
-    #          Either an integer, an iterable of integers or the special
-    #          subdomains ``"everywhere"`` or ``"otherwise"``.
-    #     :arg all_integer_subdomain_ids: Information to interpret the
-    #          ``"otherwise"`` subdomain.  ``"otherwise"`` means all
-    #          entities not explicitly enumerated by the integer
-    #          subdomains provided here.  For example, if
-    #          all_integer_subdomain_ids is empty, then ``"otherwise" ==
-    #          "everywhere"``.  If it contains ``(1, 2)``, then
-    #          ``"otherwise"`` is all entities except those marked by
-    #          subdomains 1 and 2.
-
-    #      :returns: A :class:`pyop2.Subset` for iteration.
-    #     """
-    #     if subdomain_id == "everywhere":
-    #         return self.cell_set
-    #     if subdomain_id == "otherwise":
-    #         if all_integer_subdomain_ids is None:
-    #             return self.cell_set
-    #         key = ("otherwise", ) + all_integer_subdomain_ids
-    #     else:
-    #         key = subdomain_id
-    #     try:
-    #         return self._subsets[key]
-    #     except KeyError:
-    #         if subdomain_id == "otherwise":
-    #             ids = tuple(dmplex.get_cell_markers(self._plex,
-    #                                                 self._cell_numbering,
-    #                                                 sid)
-    #                         for sid in all_integer_subdomain_ids)
-    #             to_remove = np.unique(np.concatenate(ids))
-    #             indices = np.arange(self.cell_set.total_size, dtype=IntType)
-    #             indices = np.delete(indices, to_remove)
-    #         else:
-    #             indices = dmplex.get_cell_markers(self._plex,
-    #                                               self._cell_numbering,
-    #                                               subdomain_id)
-    #         return self._subsets.setdefault(key, op2.Subset(self.cell_set, indices))
-
-    # def measure_set(self, integral_type, subdomain_id,
-    #                 all_integer_subdomain_ids=None):
-    #     """Return an iteration set appropriate for the requested integral type.
-
-    #     :arg integral_type: The type of the integral (should be a valid UFL measure).
-    #     :arg subdomain_id: The subdomain of the mesh to iterate over.
-    #          Either an integer, an iterable of integers or the special
-    #          subdomains ``"everywhere"`` or ``"otherwise"``.
-    #     :arg all_integer_subdomain_ids: Information to interpret the
-    #          ``"otherwise"`` subdomain.  ``"otherwise"`` means all
-    #          entities not explicitly enumerated by the integer
-    #          subdomains provided here.  For example, if
-    #          all_integer_subdomain_ids is empty, then ``"otherwise" ==
-    #          "everywhere"``.  If it contains ``(1, 2)``, then
-    #          ``"otherwise"`` is all entities except those marked by
-    #          subdomains 1 and 2.  This should be a dict mapping
-    #          ``integral_type`` to the explicitly enumerated subdomain ids.
-
-    #      :returns: A :class:`pyop2.Subset` for iteration.
-    #     """
-    #     if all_integer_subdomain_ids is not None:
-    #         all_integer_subdomain_ids = all_integer_subdomain_ids.get(integral_type, None)
-    #     if integral_type == "cell":
-    #         return self.cell_subset(subdomain_id, all_integer_subdomain_ids)
-    #     elif integral_type in ("exterior_facet", "exterior_facet_vert",
-    #                            "exterior_facet_top", "exterior_facet_bottom"):
-    #         return self.exterior_facets.measure_set(integral_type, subdomain_id,
-    #                                                 all_integer_subdomain_ids)
-    #     elif integral_type in ("interior_facet", "interior_facet_vert",
-    #                            "interior_facet_horiz"):
-    #         return self.interior_facets.measure_set(integral_type, subdomain_id,
-    #                                                 all_integer_subdomain_ids)
-    #     else:
-    #         raise ValueError("Unknown integral type '%s'" % integral_type)
-
-    ## END TODO
 
 class MeshGeometry(ufl.Mesh, MeshGeometryMixin):
     """A representation of mesh topology and geometry."""
