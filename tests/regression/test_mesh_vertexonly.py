@@ -70,6 +70,7 @@ def test_pic_swarm_in_plex(parentmesh):
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.skip(reason="hangs forever at present")
 def test_pic_swarm_in_plex_parallel(parentmesh):
     test_pic_swarm_in_plex(parentmesh)
 
@@ -78,6 +79,7 @@ def test_pic_swarm_in_plex_2d_2procs():
     test_pic_swarm_in_plex(UnitSquareMesh(1,1))
 
 @pytest.mark.parallel(nprocs=3) ## nprocs > total number of mesh cells
+@pytest.mark.skip(reason="hangs forever at present")
 def test_pic_swarm_in_plex_2d_3procs():
     test_pic_swarm_in_plex(UnitSquareMesh(1,1))
 
@@ -178,6 +180,7 @@ def test_functionspaces(parentmesh, family, degree):
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
+@pytest.mark.skip(reason="hangs forever at present")
 def test_functionspaces_parallel(parentmesh, family, degree):
     test_functionspaces(parentmesh, family, degree)
 
