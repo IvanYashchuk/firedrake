@@ -412,10 +412,13 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
         np.ndarray[PetscInt, ndim=1, mode="c"] cell_indexes
         np.ndarray[PetscInt, ndim=1, mode="c"] ghost_cell_indexes
 
-    cStart, cEnd = plex.getHeightStratum(0)
-    ncells = cEnd - cStart
-    
+    # check doesn't work right now
+    # assert plex is swarm.getCellDM().dm
+
     if plex.comm.size > 1:
+
+        cStart, cEnd = plex.getHeightStratum(0)
+        ncells = cEnd - cStart
 
         # Get full list of cell indexes for particles
         cell_indexes = np.copy(swarm.getField("DMSwarm_cellid"))
@@ -431,9 +434,19 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
             if cStart <= ilocal[i] < cEnd:
                 ghost_cell_indexes[ilocal[i] - cStart] = iremote[i].index
 
-        # Remove found ghost cell indexes
-        for i in range(ncells):
-            if ghost_cell_indexes[i] == cell_indexes[i]:
-                swarm.removePointAtIndex(i)
+        print(f"plex.comm.rank = {plex.comm.rank} about to remove points. ncells = {ncells} ghost_cell_indexes = {ghost_cell_indexes} cell_indexes = {cell_indexes}")
 
-    return 0
+        # Remove found ghost cell indexes - needs to be optimised!
+        i = 0
+        while i < ncells:
+        # for i in range(ncells):
+            print(f"plex.comm.rank = {plex.comm.rank} i={i}")
+            if np.isin(ghost_cell_indexes[i], cell_indexes):
+                print(f"plex.comm.rank = {plex.comm.rank} removing point. i={i} ghost_cell_indexes[i]={ghost_cell_indexes[i]} ghost_cell_indexes={ghost_cell_indexes} cell_indexes={cell_indexes} ncells={ncells}")
+                swarm.removePointAtIndex(i)
+                ghost_cell_indexes = np.delete(ghost_cell_indexes, i)
+                i = i-1
+                ncells = ncells-1
+            i += 1
+
+    return
