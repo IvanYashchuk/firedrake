@@ -391,3 +391,55 @@ def reordered_coords(PETSc.DM swarm, PETSc.Section global_numbering, shape):
     swarm.restoreField("DMSwarmPIC_coor")
 
     return coords
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
+    """Remove DMSwarm PICs which are in ghost cells of a distributed 
+    DMPlex.
+
+    :arg swarm: The DMSWARM which has been associated with the input 
+        DMPlex `plex` using PETSc `DMSwarmSetCellDM`.
+    :arg plex: The DMPlex which is associated with the input DMSWARM 
+        `swarm`
+    """
+    cdef:
+        PetscInt cStart, cEnd, ncells, i
+        PETSc.SF sf
+        # PETSc.DM plex
+        PetscInt nroots, nleaves
+        const PetscInt *ilocal = NULL
+        const PetscSFNode *iremote = NULL
+        np.ndarray[PetscInt, ndim=1, mode="c"] cell_indexes
+        np.ndarray[PetscInt, ndim=1, mode="c"] ghost_cell_indexes
+
+    # CHKERR(DMSwarmGetCellDM(swarm.dm, &plex))
+    assert plex == swarm.getCellDM()
+
+    cStart, cEnd = plex.getHeightStratum(0)
+    ncells = cEnd - cStart
+
+    # PetscObjectGetComm(plex, comm)
+    
+    if plex.comm.size > 1:
+
+        # Get full list of cell indexes for particles
+        cell_indexes = np.copy(swarm.getField("DMSwarm_cellid"))
+        swarm.restoreField("DMSwarm_cellid")
+
+        # Initialise with zeros since these can't be valid ranks or cell ids
+        ghost_cell_indexes = np.full(ncells, -1, dtype=IntType)
+
+        # Search for ghost cell indexes
+        sf = plex.getPointSF()
+        CHKERR(PetscSFGetGraph(sf.sf, &nroots, &nleaves, &ilocal, &iremote))
+        for i in range(nleaves):
+            if cStart <= ilocal[i] < cEnd:
+                ghost_cell_indexes[ilocal[i] - cStart] = iremote[i].index
+
+        # Remove found ghost cell indexes
+        for i in range(ncells):
+            if ghost_cell_indexes[i] == cell_indexes[i]:
+                swarm.removePointAtIndex(i)
+
+    return 0
