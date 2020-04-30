@@ -406,20 +406,14 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
     cdef:
         PetscInt cStart, cEnd, ncells, i
         PETSc.SF sf
-        # PETSc.DM plex
         PetscInt nroots, nleaves
         const PetscInt *ilocal = NULL
         const PetscSFNode *iremote = NULL
         np.ndarray[PetscInt, ndim=1, mode="c"] cell_indexes
         np.ndarray[PetscInt, ndim=1, mode="c"] ghost_cell_indexes
 
-    # CHKERR(DMSwarmGetCellDM(swarm.dm, &plex))
-    assert plex == swarm.getCellDM()
-
     cStart, cEnd = plex.getHeightStratum(0)
     ncells = cEnd - cStart
-
-    # PetscObjectGetComm(plex, comm)
     
     if plex.comm.size > 1:
 
