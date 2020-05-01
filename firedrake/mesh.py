@@ -1731,7 +1731,7 @@ def VertexOnlyMesh(mesh, vertexcoords, comm=COMM_WORLD):
     element = ufl.FiniteElement("DG", cell, 0)
     newmesh = MeshGeometry.__new__(MeshGeometry, element)
 
-def _pic_swarm_in_plex(plex, coords, comm=COMM_WORLD):
+def _pic_swarm_in_plex(plex, coords, **kwargs):
     """
     Create a Particle In Cell (PIC) DMSwarm, immersed in a DMPlex
     at given point coordinates.
@@ -1748,9 +1748,11 @@ def _pic_swarm_in_plex(plex, coords, comm=COMM_WORLD):
     :arg coords: a list of point coordinate tuples at which to create
         the particles.
     :kwarg comm: Optional communicator to build the mesh on
-        (defaults to COMM_WORLD).
+        (defaults to match `plex` communicator).
     :return: the immersed DMSwarm
     """
+
+    comm = kwargs.get("comm", plex.comm)
 
     coords = np.asarray(coords, dtype=np.double)
 
