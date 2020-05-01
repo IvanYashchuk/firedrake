@@ -157,13 +157,9 @@ def _test_functionspace(vm, family, degree):
     elif gdim == 3:
         x, y, z = SpatialCoordinate(vm)
         f.interpolate(x+y+z)
-    # Get exact values at coordinates
+    # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
-    # assert f.dat.data_ro == sum(vm.coordinates.dat.data_ro , #over correct index - should be in correct order - also use allclose)
-    for coord in vm.coordinates.dat.data_ro:
-        # .at doesn't work on immersed manifolds
-        # assert f.at(coord) == sum(coord)
-        assert np.isin(sum(coord), f.dat.data_ro)
+    assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro,1))
 
 def _test_vectorfunctionspace(vm, family, degree):
     # Can create function space
@@ -174,12 +170,9 @@ def _test_vectorfunctionspace(vm, family, degree):
     gdim = vm.geometric_dimension()
     x = SpatialCoordinate(vm)
     f.interpolate(2*as_vector(x))
-    # Get exact values at coordinates
+    # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
-    for coord in vm.coordinates.dat.data_ro:
-        # .at doesn't work on immersed manifolds
-        # assert f.at(coord) == sum(coord)
-        assert np.all(np.isin(2*coord, f.dat.data_ro))
+    assert np.allclose(f.dat.data_ro, 2*vm.coordinates.dat.data_ro)
 
 """Families and degrees to test function spaces on VertexOnlyMesh"""
 families_and_degrees = [
