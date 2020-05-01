@@ -57,11 +57,16 @@ def test_pic_swarm_in_plex(parentmesh):
     # on not all MPI ranks
     nptslocal = len(localpointcoords)
     nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
+    # Get parent PETSc cell indices on current MPI rank
+    localparentcellindices = np.copy(swarm.getField("DMSwarm_cellid"))
+    swarm.restoreField("DMSwarm_cellid")
 
     # Tests
 
     # Check comm sizes match
     assert plex.comm.size == swarm.comm.size
+    # Check coordinate list and parent cell indices match
+    assert len(localpointcoords) == len(localparentcellindices)
     # check local points are found in list of points
     for p in localpointcoords:
         assert np.any(np.isclose(p, pointcoords))
@@ -74,8 +79,15 @@ def test_pic_swarm_in_plex(parentmesh):
     # (excluding ghost cells in the halo)
     assert nptsglobal == len(pointcoords)
     assert nptsglobal == swarm.getSize()
-    # Check each cell has the correct point associated with it
-    #TODO
+    # Check the parent cell indexes match those in the parent mesh
+    cell_indexes = parentmesh.cell_closure[:,-1]
+    for index in localparentcellindices:
+        assert np.any(index == cell_indexes)
+    # Below won't work - locate_cell appears to use a different numbering
+    # Check each point has the correct cell index associated with it
+    # for i in range(len(localpointcoords)):
+    #     cell_index = parentmesh.locate_cell(localpointcoords[i])
+    #     assert cell_index == localparentcellindices[i]
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
