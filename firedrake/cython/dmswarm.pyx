@@ -395,12 +395,12 @@ def reordered_coords(PETSc.DM swarm, PETSc.Section global_numbering, shape):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
-    """Remove DMSwarm PICs which are in ghost cells of a distributed 
+    """Remove DMSwarm PICs which are in ghost cells of a distributed
     DMPlex.
 
-    :arg swarm: The DMSWARM which has been associated with the input 
+    :arg swarm: The DMSWARM which has been associated with the input
         DMPlex `plex` using PETSc `DMSwarmSetCellDM`.
-    :arg plex: The DMPlex which is associated with the input DMSWARM 
+    :arg plex: The DMPlex which is associated with the input DMSWARM
         `swarm`
     """
     cdef:
@@ -433,7 +433,8 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
         CHKERR(PetscSFGetGraph(sf.sf, &nroots, &nleaves, &ilocal, &iremote))
         for i in range(nleaves):
             if cStart <= ilocal[i] < cEnd:
-                ghost_cell_indices[ilocal[i] - cStart] = iremote[i].index
+                # NOTE need to check this is correct index. Can I check the labels some how?
+                ghost_cell_indices[ilocal[i] - cStart] = ilocal[i]
 
         # trim -1's to reduce searching needed
         ghost_cell_indices = ghost_cell_indices[ghost_cell_indices != -1]
