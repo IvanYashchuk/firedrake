@@ -75,7 +75,8 @@ def test_pic_swarm_in_plex(parentmesh):
     # check local points are found in list of input points
     for p in localpointcoords:
         assert np.any(np.isclose(p, inputpointcoords))
-    assert np.all(localpointcoords == inputlocalpointcoords)
+    assert len(localpointcoords) == len(inputlocalpointcoords)
+    # assert np.all(np.isin(inputlocalpointcoords, localpointcoords))
     # Check methods for checking number of points on current MPI rank
     assert len(localpointcoords) == swarm.getLocalSize()
     # Check there are as many local points as there are local cells
