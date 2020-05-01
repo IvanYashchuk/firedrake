@@ -153,20 +153,29 @@ def functionspace_tests(vm, family, degree):
     V = FunctionSpace(vm, family, degree)
     # Can create function on function spaces
     f = Function(V)
-    # Can interpolate onto functions
+    g = Function(V)
+    # Can interpolate and Galerkin project onto functions
     gdim = vm.geometric_dimension()
     if gdim == 1:
         x, = SpatialCoordinate(vm)
         f.interpolate(x)
+        g.project(x)
     elif gdim == 2:
         x, y = SpatialCoordinate(vm)
         f.interpolate(x+y)
+        g.project(x+y)
     elif gdim == 3:
         x, y, z = SpatialCoordinate(vm)
         f.interpolate(x+y+z)
+        g.project(x+y+z)
     # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
     assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro,1))
+    # Projection is the same as interpolation
+    assert np.allclose(f.dat.data_ro, g.dat.data_ro)
+    # Assembly works as expected
+    f.interpolate(Constant(2))
+    assert np.isclose(assemble(f*dx), 2*vm.num_cells())
 
 def vectorfunctionspace_tests(vm, family, degree):
     # Can create function space
@@ -180,6 +189,7 @@ def vectorfunctionspace_tests(vm, family, degree):
     # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
     assert np.allclose(f.dat.data_ro, 2*vm.coordinates.dat.data_ro)
+    # TODO add assembly and Galerkin projection
 
 """Families and degrees to test function spaces on VertexOnlyMesh"""
 families_and_degrees = [
