@@ -92,11 +92,8 @@ def test_pic_swarm_in_plex(parentmesh):
     cell_indexes = parentmesh.cell_closure[:,-1]
     for index in localparentcellindices:
         assert np.any(index == cell_indexes)
-    # Below won't work - locate_cell appears to use a different numbering
     # Check each point has the correct cell index associated with it
-    # for i in range(len(localpointcoords)):
-    #     cell_index = parentmesh.locate_cell(localpointcoords[i])
-    #     assert cell_index == localparentcellindices[i]
+    # TODO
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
@@ -113,24 +110,25 @@ def test_pic_swarm_in_plex_2d_3procs():
 
 # Mesh Generation Tests
 
-def verify_vertexonly_mesh(m, vm, vertexcoords, gdim):
-    """Assumes all vertexcoords are all in vm"""
+def verify_vertexonly_mesh(m, vm, imputvertexcoords, imputvertexcoordslocal, gdim):
+    """Assumes all imputvertexcoordslocal are the correct process local 
+    vertex coords in the vm"""
     assert m.geometric_dimension() == gdim
     # Correct dims
     assert vm.geometric_dimension() == gdim
     assert vm.topological_dimension() == 0
     # Can initialise
     vm.init()
-    # Correct coordinates
-    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(vertexcoords)
-    assert np.all(np.isin(vm.coordinates.dat.data_ro, vertexcoords))
+    # Correct coordinates (though not guaranteed to be in same order)
+    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(imputvertexcoordslocal)
+    assert np.all(np.isin(imputvertexcoordslocal, vm.coordinates.dat.data_ro))
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
-    assert np.shape(vm.cell_closure) == (len(vertexcoords), 1)
+    assert np.shape(vm.cell_closure) == (len(imputvertexcoordslocal), 1)
     with pytest.raises(AttributeError):
         vm.cell_to_facets
-    assert vm.num_cells() == len(vertexcoords)
+    assert vm.num_cells() == len(imputvertexcoordslocal)
     assert vm.num_facets() == 0
     assert vm.num_faces() == vm.num_entities(2) == 0
     assert vm.num_edges() == vm.num_entities(1) == 0
@@ -139,9 +137,9 @@ def verify_vertexonly_mesh(m, vm, vertexcoords, gdim):
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 def test_generate(parentmesh):
-    vertexcoords, vertexcoordslocal = cell_midpoints(parentmesh)
-    vm = VertexOnlyMesh(parentmesh, vertexcoords)
-    verify_vertexonly_mesh(parentmesh, vm, vertexcoords, parentmesh.geometric_dimension())
+    inputcoords, inputcoordslocal = cell_midpoints(parentmesh)
+    vm = VertexOnlyMesh(parentmesh, inputcoords)
+    verify_vertexonly_mesh(parentmesh, vm, inputcoords, inputcoordslocal, parentmesh.geometric_dimension())
 
 @pytest.mark.parallel(nprocs=2)
 @pytest.mark.parametrize("parentmesh", parentmeshes)
