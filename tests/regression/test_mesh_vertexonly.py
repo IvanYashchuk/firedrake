@@ -7,8 +7,13 @@ from mpi4py import MPI
 
 def cell_midpoints(m):
     """Get the coordinates of the midpoints of every cell in mesh `m`.
-    The mesh may be distributed, but the midpoints are returned for the
-    entire mesh as though it were not distributed."""
+
+    :param m: The mesh to generate cell midpoints for.
+
+    :returns: A tuple of numpy arrays `(midpoints, local_midpoints)` where
+    `midpoints` are the midpoints for the entire mesh even if the mesh is
+    distributed and `local_midpoints` are the midpoints of only the 
+    rank-local non-ghost cells."""
     m.init()
     V = VectorFunctionSpace(m, "DG", 0)
     f = Function(V).interpolate(m.coordinates)
@@ -25,7 +30,7 @@ def cell_midpoints(m):
     midpoints = np.empty((num_cells, m.cell_dimension()), dtype=float)
     MPI.COMM_WORLD.Allgatherv(local_midpoints, (midpoints, local_midpoints_sizes))
     assert len(np.unique(midpoints, axis=0)) == len(midpoints)
-    return midpoints
+    return midpoints, local_midpoints
 
 """Parent meshes used in tests"""
 parentmeshes = [
@@ -44,18 +49,18 @@ def test_pic_swarm_in_plex(parentmesh):
     # Setup
     
     parentmesh.init()
-    pointcoords = cell_midpoints(parentmesh)
+    pointcoords, localpointcoords = cell_midpoints(parentmesh)
     plex = parentmesh.topology._plex
     swarm = mesh._pic_swarm_in_plex(plex, pointcoords)
     # Get point coords on current MPI rank
-    localpointcoords = np.copy(swarm.getField("DMSwarmPIC_coor"))
+    localpointcoords_swarm = np.copy(swarm.getField("DMSwarmPIC_coor"))
     swarm.restoreField("DMSwarmPIC_coor")
     if len(pointcoords.shape) > 1:
-        localpointcoords = np.reshape(localpointcoords, (-1, pointcoords.shape[1]))
+        localpointcoords_swarm = np.reshape(localpointcoords_swarm, (-1, pointcoords.shape[1]))
     # Turn this into a number of points locally and MPI globally before 
     # doing any tests to avoid making tests hang should a failure occur 
     # on not all MPI ranks
-    nptslocal = len(localpointcoords)
+    nptslocal = len(localpointcoords_swarm)
     nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
     # Get parent PETSc cell indices on current MPI rank
     localparentcellindices = np.copy(swarm.getField("DMSwarm_cellid"))
@@ -66,15 +71,16 @@ def test_pic_swarm_in_plex(parentmesh):
     # Check comm sizes match
     assert plex.comm.size == swarm.comm.size
     # Check coordinate list and parent cell indices match
-    assert len(localpointcoords) == len(localparentcellindices)
-    # check local points are found in list of points
-    for p in localpointcoords:
+    assert len(localpointcoords_swarm) == len(localparentcellindices)
+    # check local points are found in list of input points
+    for p in localpointcoords_swarm:
         assert np.any(np.isclose(p, pointcoords))
+    assert np.all(localpointcoords_swarm == localpointcoords)
     # Check methods for checking number of points on current MPI rank
-    assert len(localpointcoords) == swarm.getLocalSize()
+    assert len(localpointcoords_swarm) == swarm.getLocalSize()
     # Check there are as many local points as there are local cells
     # (excluding ghost cells in the halo)
-    assert len(localpointcoords) == parentmesh.cell_set.size
+    assert len(localpointcoords_swarm) == parentmesh.cell_set.size
     # Check total number of points on all MPI ranks is correct
     # (excluding ghost cells in the halo)
     assert nptsglobal == len(pointcoords)
@@ -85,8 +91,8 @@ def test_pic_swarm_in_plex(parentmesh):
         assert np.any(index == cell_indexes)
     # Below won't work - locate_cell appears to use a different numbering
     # Check each point has the correct cell index associated with it
-    # for i in range(len(localpointcoords)):
-    #     cell_index = parentmesh.locate_cell(localpointcoords[i])
+    # for i in range(len(localpointcoords_swarm)):
+    #     cell_index = parentmesh.locate_cell(localpointcoords_swarm[i])
     #     assert cell_index == localparentcellindices[i]
 
 @pytest.mark.parallel
@@ -130,7 +136,7 @@ def verify_vertexonly_mesh(m, vm, vertexcoords, gdim):
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 def test_generate(parentmesh):
-    vertexcoords = cell_midpoints(parentmesh)
+    vertexcoords, vertexcoordslocal = cell_midpoints(parentmesh)
     vm = VertexOnlyMesh(parentmesh, vertexcoords)
     verify_vertexonly_mesh(parentmesh, vm, vertexcoords, parentmesh.geometric_dimension())
 
@@ -184,7 +190,7 @@ families_and_degrees = [
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
 def test_functionspaces(parentmesh, family, degree):
-    vertexcoords = cell_midpoints(parentmesh)
+    vertexcoords, vertexcoordslocal = cell_midpoints(parentmesh)
     vm = VertexOnlyMesh(parentmesh, vertexcoords)
     functionspace_tests(vm, family, degree)
     vectorfunctionspace_tests(vm, family, degree)
