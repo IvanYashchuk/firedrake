@@ -110,8 +110,8 @@ def test_pic_swarm_in_plex_2d_3procs():
 
 # Mesh Generation Tests
 
-def verify_vertexonly_mesh(m, vm, imputvertexcoords, imputvertexcoordslocal, gdim):
-    """Assumes all imputvertexcoordslocal are the correct process local 
+def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdim):
+    """Assumes all inputvertexcoordslocal are the correct process local 
     vertex coords in the vm"""
     assert m.geometric_dimension() == gdim
     # Correct dims
@@ -120,15 +120,15 @@ def verify_vertexonly_mesh(m, vm, imputvertexcoords, imputvertexcoordslocal, gdi
     # Can initialise
     vm.init()
     # Correct coordinates (though not guaranteed to be in same order)
-    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(imputvertexcoordslocal)
-    assert np.all(np.isin(imputvertexcoordslocal, vm.coordinates.dat.data_ro))
+    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(inputvertexcoordslocal)
+    assert np.all(np.isin(inputvertexcoordslocal, vm.coordinates.dat.data_ro))
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
-    assert np.shape(vm.cell_closure) == (len(imputvertexcoordslocal), 1)
+    assert np.shape(vm.cell_closure) == (len(inputvertexcoordslocal), 1)
     with pytest.raises(AttributeError):
         vm.cell_to_facets
-    assert vm.num_cells() == len(imputvertexcoordslocal)
+    assert vm.num_cells() == len(inputvertexcoordslocal)
     assert vm.num_facets() == 0
     assert vm.num_faces() == vm.num_entities(2) == 0
     assert vm.num_edges() == vm.num_entities(1) == 0
