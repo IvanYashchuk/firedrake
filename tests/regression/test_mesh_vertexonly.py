@@ -49,18 +49,18 @@ def test_pic_swarm_in_plex(parentmesh):
     # Setup
     
     parentmesh.init()
-    pointcoords, localpointcoords = cell_midpoints(parentmesh)
+    inputpointcoords, inputlocalpointcoords = cell_midpoints(parentmesh)
     plex = parentmesh.topology._plex
-    swarm = mesh._pic_swarm_in_plex(plex, pointcoords)
+    swarm = mesh._pic_swarm_in_plex(plex, inputpointcoords)
     # Get point coords on current MPI rank
-    localpointcoords_swarm = np.copy(swarm.getField("DMSwarmPIC_coor"))
+    localpointcoords = np.copy(swarm.getField("DMSwarmPIC_coor"))
     swarm.restoreField("DMSwarmPIC_coor")
-    if len(pointcoords.shape) > 1:
-        localpointcoords_swarm = np.reshape(localpointcoords_swarm, (-1, pointcoords.shape[1]))
+    if len(inputpointcoords.shape) > 1:
+        localpointcoords = np.reshape(localpointcoords, (-1, inputpointcoords.shape[1]))
     # Turn this into a number of points locally and MPI globally before 
     # doing any tests to avoid making tests hang should a failure occur 
     # on not all MPI ranks
-    nptslocal = len(localpointcoords_swarm)
+    nptslocal = len(localpointcoords)
     nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
     # Get parent PETSc cell indices on current MPI rank
     localparentcellindices = np.copy(swarm.getField("DMSwarm_cellid"))
@@ -71,19 +71,19 @@ def test_pic_swarm_in_plex(parentmesh):
     # Check comm sizes match
     assert plex.comm.size == swarm.comm.size
     # Check coordinate list and parent cell indices match
-    assert len(localpointcoords_swarm) == len(localparentcellindices)
+    assert len(localpointcoords) == len(localparentcellindices)
     # check local points are found in list of input points
-    for p in localpointcoords_swarm:
-        assert np.any(np.isclose(p, pointcoords))
-    assert np.all(localpointcoords_swarm == localpointcoords)
+    for p in localpointcoords:
+        assert np.any(np.isclose(p, inputpointcoords))
+    assert np.all(localpointcoords == inputlocalpointcoords)
     # Check methods for checking number of points on current MPI rank
-    assert len(localpointcoords_swarm) == swarm.getLocalSize()
+    assert len(localpointcoords) == swarm.getLocalSize()
     # Check there are as many local points as there are local cells
     # (excluding ghost cells in the halo)
-    assert len(localpointcoords_swarm) == parentmesh.cell_set.size
+    assert len(localpointcoords) == parentmesh.cell_set.size
     # Check total number of points on all MPI ranks is correct
     # (excluding ghost cells in the halo)
-    assert nptsglobal == len(pointcoords)
+    assert nptsglobal == len(inputpointcoords)
     assert nptsglobal == swarm.getSize()
     # Check the parent cell indexes match those in the parent mesh
     cell_indexes = parentmesh.cell_closure[:,-1]
@@ -91,8 +91,8 @@ def test_pic_swarm_in_plex(parentmesh):
         assert np.any(index == cell_indexes)
     # Below won't work - locate_cell appears to use a different numbering
     # Check each point has the correct cell index associated with it
-    # for i in range(len(localpointcoords_swarm)):
-    #     cell_index = parentmesh.locate_cell(localpointcoords_swarm[i])
+    # for i in range(len(localpointcoords)):
+    #     cell_index = parentmesh.locate_cell(localpointcoords[i])
     #     assert cell_index == localparentcellindices[i]
 
 @pytest.mark.parallel
