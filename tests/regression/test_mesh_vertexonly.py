@@ -139,9 +139,9 @@ def test_generate(parentmesh):
 def test_generate_parallel(parentmesh):
     test_generate(parentmesh)
 
-# Mesh use tests
+# Mesh usage tests
 
-def _test_functionspace(vm, family, degree):
+def functionspace_tests(vm, family, degree):
     # Can create function space
     V = FunctionSpace(vm, family, degree)
     # Can create function on function spaces
@@ -161,7 +161,7 @@ def _test_functionspace(vm, family, degree):
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
     assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro,1))
 
-def _test_vectorfunctionspace(vm, family, degree):
+def vectorfunctionspace_tests(vm, family, degree):
     # Can create function space
     V = VectorFunctionSpace(vm, family, degree)
     # Can create function on function spaces
@@ -186,8 +186,8 @@ families_and_degrees = [
 def test_functionspaces(parentmesh, family, degree):
     vertexcoords = cell_midpoints(parentmesh)
     vm = VertexOnlyMesh(parentmesh, vertexcoords)
-    _test_functionspace(vm, family, degree)
-    _test_vectorfunctionspace(vm, family, degree)
+    functionspace_tests(vm, family, degree)
+    vectorfunctionspace_tests(vm, family, degree)
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
