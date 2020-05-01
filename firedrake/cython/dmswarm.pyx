@@ -404,13 +404,13 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
         `swarm`
     """
     cdef:
-        PetscInt cStart, cEnd, ncells, i
+        PetscInt cStart, cEnd, ncells, i, npics
         PETSc.SF sf
         PetscInt nroots, nleaves
         const PetscInt *ilocal = NULL
         const PetscSFNode *iremote = NULL
-        np.ndarray[PetscInt, ndim=1, mode="c"] cell_indexes
-        np.ndarray[PetscInt, ndim=1, mode="c"] ghost_cell_indexes
+        np.ndarray[PetscInt, ndim=1, mode="c"] pic_cell_indices
+        np.ndarray[PetscInt, ndim=1, mode="c"] ghost_cell_indices
 
     # check doesn't work right now
     # assert plex is swarm.getCellDM().dm
@@ -420,33 +420,28 @@ def remove_ghosts_pic(PETSc.DM swarm, PETSc.DM plex):
         cStart, cEnd = plex.getHeightStratum(0)
         ncells = cEnd - cStart
 
-        # Get full list of cell indexes for particles
-        cell_indexes = np.copy(swarm.getField("DMSwarm_cellid"))
+        # Get full list of cell indices for particles
+        pic_cell_indices = np.copy(swarm.getField("DMSwarm_cellid"))
         swarm.restoreField("DMSwarm_cellid")
+        npics = len(pic_cell_indices)
 
         # Initialise with zeros since these can't be valid ranks or cell ids
-        ghost_cell_indexes = np.full(ncells, -1, dtype=IntType)
+        ghost_cell_indices = np.full(ncells, -1, dtype=IntType)
 
-        # Search for ghost cell indexes
+        # Search for ghost cell indices (spooky!)
         sf = plex.getPointSF()
         CHKERR(PetscSFGetGraph(sf.sf, &nroots, &nleaves, &ilocal, &iremote))
         for i in range(nleaves):
             if cStart <= ilocal[i] < cEnd:
-                ghost_cell_indexes[ilocal[i] - cStart] = iremote[i].index
+                ghost_cell_indices[ilocal[i] - cStart] = iremote[i].index
 
-        print(f"plex.comm.rank = {plex.comm.rank} about to remove points. ncells = {ncells} ghost_cell_indexes = {ghost_cell_indexes} cell_indexes = {cell_indexes}")
+        # trim -1's to reduce searching needed
+        ghost_cell_indices = ghost_cell_indices[ghost_cell_indices != -1]
 
-        # Remove found ghost cell indexes - needs to be optimised!
-        i = 0
-        while i < ncells:
-        # for i in range(ncells):
-            print(f"plex.comm.rank = {plex.comm.rank} i={i}")
-            if np.isin(ghost_cell_indexes[i], cell_indexes):
-                print(f"plex.comm.rank = {plex.comm.rank} removing point. i={i} ghost_cell_indexes[i]={ghost_cell_indexes[i]} ghost_cell_indexes={ghost_cell_indexes} cell_indexes={cell_indexes} ncells={ncells}")
+        # remove swarm pic parent cell indices which match ghost cell indices
+        for i in range(npics-1, -1, -1):
+            if np.isin(pic_cell_indices[i], ghost_cell_indices):
+                # removePointAtIndex shift cell numbers down by 1
                 swarm.removePointAtIndex(i)
-                ghost_cell_indexes = np.delete(ghost_cell_indexes, i)
-                i = i-1
-                ncells = ncells-1
-            i += 1
 
     return

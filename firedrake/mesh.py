@@ -1731,7 +1731,7 @@ def VertexOnlyMesh(mesh, vertexcoords, comm=COMM_WORLD):
     element = ufl.FiniteElement("DG", cell, 0)
     newmesh = MeshGeometry.__new__(MeshGeometry, element)
 
-def _pic_swarm_in_plex(dmplex, coords, comm=COMM_WORLD):
+def _pic_swarm_in_plex(plex, coords, comm=COMM_WORLD):
     """
     Create a Particle In Cell (PIC) DMSwarm, immersed in a DMPlex
     at given point coordinates.
@@ -1743,7 +1743,7 @@ def _pic_swarm_in_plex(dmplex, coords, comm=COMM_WORLD):
     straight edges. If not, the particles may be placed in the wrong
     cells.
 
-    :arg dmplex: the DMPlex within with the DMSwarm should be
+    :arg plex: the DMPlex within with the DMSwarm should be
         immersed.
     :arg coords: a list of point coordinate tuples at which to create
         the particles.
@@ -1762,7 +1762,7 @@ def _pic_swarm_in_plex(dmplex, coords, comm=COMM_WORLD):
     #     dimension of a mesh (which would be 0). In all PETSc examples
     #     the dimension of the DMSwarm is set to match that of the
     #     DMPlex used with swarm.setCellDM
-    swarm.setDimension(dmplex.getDimension())
+    swarm.setDimension(plex.getDimension())
 
     # Set coordinates dimension
     if len(np.shape(coords)) == 1:
@@ -1777,7 +1777,7 @@ def _pic_swarm_in_plex(dmplex, coords, comm=COMM_WORLD):
         raise NotImplementedError("1D DMSwarm not yet supported")
 
     # Link to DMPlex cells information for when swarm.migrate() is used
-    swarm.setCellDM(dmplex)
+    swarm.setCellDM(plex)
 
     # Set to Particle In Cell (PIC) type
     swarm.setType(PETSc.DMSwarm.Type.PIC)
@@ -1795,6 +1795,9 @@ def _pic_swarm_in_plex(dmplex, coords, comm=COMM_WORLD):
     # all MPI ranks are given the same list of coordinates. This forces
     # all ranks to search for the given coordinates within their cell.
     swarm.setPointCoordinates(coords, redundant=False, mode=PETSc.InsertMode.INSERT_VALUES)
+
+    # Remove PICs which have been placed into ghost cells of a distributed DMPlex
+    dmswarm.remove_ghosts_pic(swarm, plex)
 
     # Some different method of matching points to cells will need to be
     # used for bendy meshes since PETSc only supports straight-edged
