@@ -1307,36 +1307,6 @@ def get_cell_remote_ranks(PETSc.DM plex):
 
     return result
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def get_cell_indices(PETSc.DM plex):
-    """Returns an array of local PETSc cell indices of the of each
-    locally visible cell.
-
-    :arg plex: The DMPlex object encapsulating the mesh topology
-    """
-    cdef:
-        PetscInt cStart, cEnd, ncells, i
-        PETSc.SF sf
-        PetscInt nroots, nleaves
-        const PetscInt *ilocal = NULL
-        const PetscSFNode *iremote = NULL
-        np.ndarray[PetscInt, ndim=1, mode="c"] result
-
-    cStart, cEnd = plex.getHeightStratum(0)
-    ncells = cEnd - cStart
-
-    result = np.full(ncells, -1, dtype=IntType)
-    if plex.comm.size > 1:
-        sf = plex.getPointSF()
-        CHKERR(PetscSFGetGraph(sf.sf, &nroots, &nleaves, &ilocal, &iremote))
-        print(f"plex.comm.rank={plex.comm.rank} nroots={nroots} nleaves={nleaves}")
-        for i in range(nleaves):
-            if cStart <= ilocal[i] < cEnd:
-                result[ilocal[i] - cStart] = iremote[i].index
-
-    return result
-
 cdef inline PetscInt cneg(PetscInt i):
     """complementary inverse"""
     return -(i + 1)
