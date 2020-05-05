@@ -1047,9 +1047,9 @@ class VertexOnlyMeshTopology(MeshTopology):
         self._subsets = {}
 
         tdim = 0
-        gdim = swarm.getCoordinateDim()
 
-        self._ufl_cell = ufl.Cell("vertex", geometric_dimension=gdim)
+        cell = ufl.Cell("vertex")
+        self._ufl_mesh = ufl.Mesh(ufl.VectorElement("Lagrange", cell, 1, dim=cell.topological_dimension()))
 
         # A set of weakrefs to meshes that are explicitly labelled as being
         # parallel-compatible for interpolation/projection/supermeshing
