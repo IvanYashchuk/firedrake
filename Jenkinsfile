@@ -26,7 +26,7 @@ pipeline {
         sh 'mkdir tmp'
         dir('tmp') {
           timestamps {
-            sh '../scripts/firedrake-install --package-branch tsfc 0d-mesh --package-branch fiat vertexcell --disable-ssh --minimal-petsc --slepc --documentation-dependencies --install thetis --install gusto --install icepack --no-package-manager || (cat firedrake-install.log && /bin/false)'
+            sh '../scripts/firedrake-install --package-branch tsfc 0d-mesh --package-branch fiat vertexcell --package-branch ufl vertexcell --disable-ssh --minimal-petsc --slepc --documentation-dependencies --install thetis --install gusto --install icepack --no-package-manager || (cat firedrake-install.log && /bin/false)'
           }
         }
       }
