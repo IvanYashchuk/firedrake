@@ -1147,7 +1147,7 @@ class VertexOnlyMeshTopology(MeshTopology):
         return 0
 
     def num_vertices(self):
-        return self._swarm.getLocalSize()
+        return self._swarm.getSize()
 
     def num_entities(self, d):
         if d > 0:

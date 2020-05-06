@@ -43,7 +43,7 @@ def mark_entity_classes(PETSc.DM swarm):
         DMLabel lbl_core, lbl_owned, lbl_ghost
 
     pStart = 0
-    pEnd = swarm.getLocalSize()
+    pEnd = swarm.getSize()
 
     swarm.createLabel("pyop2_core")
     swarm.createLabel("pyop2_owned")
@@ -100,7 +100,7 @@ def get_entity_classes(PETSc.DM swarm):
     eEnd = np.zeros(depth, dtype=IntType)
     for d in range(depth):
         start = 0 # by definition since a swarm is point cloud
-        CHKERR(DMSwarmGetLocalSize(swarm.dm, &end)) # by definition since a swarm is point cloud
+        CHKERR(DMSwarmGetSize(swarm.dm, &end)) # by definition since a swarm is point cloud
         eStart[d] = start
         eEnd[d] = end
 
@@ -166,7 +166,7 @@ def create_section(mesh, nodes_per_entity, on_base=False):
     # renumbering = mesh._swarm_renumbering
     section = PETSc.Section().create(comm=mesh.comm)
     pStart = 0 # by definition since point cloud
-    pEnd = dm.getLocalSize() # by definition since point cloud
+    pEnd = dm.getSize() # by definition since point cloud
     section.setChart(pStart, pEnd)
     # CHKERR(PetscSectionSetPermutation(section.sec, renumbering.iset))
     dimension = 0 # by definition since point cloud
@@ -175,7 +175,7 @@ def create_section(mesh, nodes_per_entity, on_base=False):
 
     for i in range(dimension + 1):
         pStart = 0 # by definition since a swarm is point cloud
-        CHKERR(DMSwarmGetLocalSize(dm.dm, &pEnd)) # by definition since a swarm is point cloud
+        CHKERR(DMSwarmGetSize(dm.dm, &pEnd)) # by definition since a swarm is point cloud
         if not variable:
             ndof = nodes[i, 0]
         for p in range(pStart, pEnd):
@@ -227,7 +227,7 @@ def closure_ordering(PETSc.DM swarm,
 
     dim = 0 # by definition since point cloud
     cStart = 0
-    cEnd = swarm.getLocalSize()
+    cEnd = swarm.getSize()
     vStart = cStart
     vEnd = cEnd
     v_per_cell = entity_per_cell[0]
@@ -337,7 +337,7 @@ def get_cell_nodes(mesh,
 
     # Fill cell nodes
     cStart = 0
-    cEnd = mesh._swarm.getLocalSize()
+    cEnd = mesh._swarm.getSize()
     cell_nodes = np.empty((cEnd - cStart, dofs_per_cell), dtype=IntType)
     cell_numbering = mesh._cell_numbering
     for c in range(cStart, cEnd):
@@ -380,7 +380,7 @@ def reordered_coords(PETSc.DM swarm, PETSc.Section global_numbering, shape):
     swarm_coords = swarm.getField("DMSwarmPIC_coor").reshape(shape)
     coords = np.empty_like(swarm_coords)
     vStart = 0
-    vEnd = swarm.getLocalSize()
+    vEnd = swarm.getSize()
 
     for v in range(vStart, vEnd):
         CHKERR(PetscSectionGetOffset(global_numbering.sec, v, &offset))
