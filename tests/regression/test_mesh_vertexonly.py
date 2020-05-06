@@ -128,7 +128,7 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdi
     assert np.shape(vm.cell_closure) == (len(inputvertexcoordslocal), 1)
     with pytest.raises(AttributeError):
         vm.cell_to_facets
-    assert vm.num_cells() == len(inputvertexcoords)
+    assert vm.num_cells() == len(inputvertexcoordslocal)
     assert vm.num_facets() == 0
     assert vm.num_faces() == vm.num_entities(2) == 0
     assert vm.num_edges() == vm.num_entities(1) == 0
