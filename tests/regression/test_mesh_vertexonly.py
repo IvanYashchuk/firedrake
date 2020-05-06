@@ -149,6 +149,8 @@ def test_generate_parallel(parentmesh):
 # Mesh usage tests
 
 def functionspace_tests(vm, family, degree):
+    # Prep: Get number of cells
+    num_cells_mpi_global = MPI.COMM_WORLD.allreduce(vm.num_cells(), op=MPI.SUM)
     # Can create function space
     V = FunctionSpace(vm, family, degree)
     # Can create function on function spaces
@@ -175,7 +177,7 @@ def functionspace_tests(vm, family, degree):
     assert np.allclose(f.dat.data_ro, g.dat.data_ro)
     # Assembly works as expected
     f.interpolate(Constant(2))
-    assert np.isclose(assemble(f*dx), 2*vm.num_cells())
+    assert np.isclose(assemble(f*dx), 2*num_cells_mpi_global)
 
 def vectorfunctionspace_tests(vm, family, degree):
     # Can create function space
