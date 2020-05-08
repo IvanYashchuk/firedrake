@@ -523,19 +523,27 @@ class MeshTopology(object):
     def ufl_cell(self):
         """The UFL :class:`~ufl.classes.Cell` associated with the mesh.
 
-        Note that, by convention, the UFL cells which specifically
-        represent a mesh topology have geometric dimension equal their
-        topological dimension. This is true even for immersed manifold
-        meshes."""
+        .. note::
+
+            By convention, the UFL cells which specifically
+            represent a mesh topology have geometric dimension equal their
+            topological dimension. This is true even for immersed manifold
+            meshes.
+
+        """
         return self._ufl_mesh.ufl_cell()
 
     def ufl_mesh(self):
         """The UFL :class:`~ufl.classes.Mesh` associated with the mesh.
 
-        Note that, by convention, the UFL cells which specifically
-        represent a mesh topology have geometric dimension equal their
-        topological dimension. This convention will be reflected in this
-        UFL mesh and is true even for immersed manifold meshes."""
+        .. note::
+
+            By convention, the UFL cells which specifically
+            represent a mesh topology have geometric dimension equal their
+            topological dimension. This convention will be reflected in this
+            UFL mesh and is true even for immersed manifold meshes.
+
+        """
         return self._ufl_mesh
 
     @utils.cached_property
