@@ -5,6 +5,7 @@ from mpi4py import MPI
 
 # Utility Functions
 
+
 def cell_midpoints(m):
     """Get the coordinates of the midpoints of every cell in mesh `m`.
 
@@ -12,7 +13,7 @@ def cell_midpoints(m):
 
     :returns: A tuple of numpy arrays `(midpoints, local_midpoints)` where
     `midpoints` are the midpoints for the entire mesh even if the mesh is
-    distributed and `local_midpoints` are the midpoints of only the 
+    distributed and `local_midpoints` are the midpoints of only the
     rank-local non-ghost cells."""
     m.init()
     V = VectorFunctionSpace(m, "DG", 0)
@@ -32,12 +33,14 @@ def cell_midpoints(m):
     assert len(np.unique(midpoints, axis=0)) == len(midpoints)
     return midpoints, local_midpoints
 
+
 """Parent meshes used in tests"""
 parentmeshes = [
     pytest.param(UnitIntervalMesh(1), marks=pytest.mark.xfail(reason="swarm not implemented in 1d")),
-    UnitSquareMesh(1,1),
-    UnitCubeMesh(1,1,1)
+    UnitSquareMesh(1, 1),
+    UnitCubeMesh(1, 1, 1)
 ]
+
 
 # pic swarm tests
 
@@ -47,7 +50,7 @@ def test_pic_swarm_in_plex(parentmesh):
     swarm is created in plex."""
 
     # Setup
-    
+
     parentmesh.init()
     inputpointcoords, inputlocalpointcoords = cell_midpoints(parentmesh)
     plex = parentmesh.topology._plex
@@ -57,8 +60,8 @@ def test_pic_swarm_in_plex(parentmesh):
     swarm.restoreField("DMSwarmPIC_coor")
     if len(inputpointcoords.shape) > 1:
         localpointcoords = np.reshape(localpointcoords, (-1, inputpointcoords.shape[1]))
-    # Turn this into a number of points locally and MPI globally before 
-    # doing any tests to avoid making tests hang should a failure occur 
+    # Turn this into a number of points locally and MPI globally before
+    # doing any tests to avoid making tests hang should a failure occur
     # on not all MPI ranks
     nptslocal = len(localpointcoords)
     nptsglobal = MPI.COMM_WORLD.allreduce(nptslocal, op=MPI.SUM)
@@ -75,7 +78,7 @@ def test_pic_swarm_in_plex(parentmesh):
     # check local points are found in list of input points
     for p in localpointcoords:
         assert np.any(np.isclose(p, inputpointcoords))
-    # check local points are correct local points given mesh 
+    # check local points are correct local points given mesh
     # partitioning (but don't require ordering to be maintained)
     assert len(localpointcoords) == len(inputlocalpointcoords)
     assert np.all(np.isin(inputlocalpointcoords, localpointcoords))
@@ -89,29 +92,34 @@ def test_pic_swarm_in_plex(parentmesh):
     assert nptsglobal == len(inputpointcoords)
     assert nptsglobal == swarm.getSize()
     # Check the parent cell indexes match those in the parent mesh
-    cell_indexes = parentmesh.cell_closure[:,-1]
+    cell_indexes = parentmesh.cell_closure[:, -1]
     for index in localparentcellindices:
         assert np.any(index == cell_indexes)
     # Check each point has the correct cell index associated with it
     # TODO
+
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 def test_pic_swarm_in_plex_parallel(parentmesh):
     test_pic_swarm_in_plex(parentmesh)
 
-@pytest.mark.parallel(nprocs=2) # nprocs == total number of mesh cells
-def test_pic_swarm_in_plex_2d_2procs():
-    test_pic_swarm_in_plex(UnitSquareMesh(1,1))
 
-@pytest.mark.parallel(nprocs=3) ## nprocs > total number of mesh cells
+@pytest.mark.parallel(nprocs=2)  # nprocs == total number of mesh cells
+def test_pic_swarm_in_plex_2d_2procs():
+    test_pic_swarm_in_plex(UnitSquareMesh(1, 1))
+
+
+@pytest.mark.parallel(nprocs=3)  # nprocs > total number of mesh cells
 def test_pic_swarm_in_plex_2d_3procs():
-    test_pic_swarm_in_plex(UnitSquareMesh(1,1))
+    test_pic_swarm_in_plex(UnitSquareMesh(1, 1))
+
 
 # Mesh Generation Tests
 
+
 def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdim):
-    """Assumes all inputvertexcoordslocal are the correct process local 
+    """Assumes all inputvertexcoordslocal are the correct process local
     vertex coords in the vm"""
     assert m.geometric_dimension() == gdim
     # Correct dims
@@ -141,6 +149,7 @@ def test_generate(parentmesh):
     vm = VertexOnlyMesh(parentmesh, inputcoords)
     verify_vertexonly_mesh(parentmesh, vm, inputcoords, inputcoordslocal, parentmesh.geometric_dimension())
 
+
 @pytest.mark.parallel(nprocs=2)
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 def test_generate_parallel(parentmesh):
@@ -156,6 +165,7 @@ def test_extrude(parentmesh):
 
 
 # Mesh usage tests
+
 
 def functionspace_tests(vm, family, degree):
     # Prep: Get number of cells
@@ -181,12 +191,13 @@ def functionspace_tests(vm, family, degree):
         g.project(x+y+z)
     # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
-    assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro,1))
+    assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro, 1))
     # Projection is the same as interpolation
     assert np.allclose(f.dat.data_ro, g.dat.data_ro)
     # Assembly works as expected
     f.interpolate(Constant(2))
     assert np.isclose(assemble(f*dx), 2*num_cells_mpi_global)
+
 
 def vectorfunctionspace_tests(vm, family, degree):
     # Can create function space
@@ -194,7 +205,6 @@ def vectorfunctionspace_tests(vm, family, degree):
     # Can create function on function spaces
     f = Function(V)
     # Can interpolate onto functions
-    gdim = vm.geometric_dimension()
     x = SpatialCoordinate(vm)
     f.interpolate(2*as_vector(x))
     # Get exact values at coordinates with maintained ordering
@@ -202,12 +212,14 @@ def vectorfunctionspace_tests(vm, family, degree):
     assert np.allclose(f.dat.data_ro, 2*vm.coordinates.dat.data_ro)
     # TODO add assembly and Galerkin projection
 
+
 """Families and degrees to test function spaces on VertexOnlyMesh"""
 families_and_degrees = [
     ("DG", 0),
     pytest.param("DG", 1, marks=pytest.mark.xfail(reason="unsupported degree")),
     pytest.param("CG", 1, marks=pytest.mark.xfail(reason="unsupported family and degree"))
 ]
+
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
@@ -217,14 +229,9 @@ def test_functionspaces(parentmesh, family, degree):
     functionspace_tests(vm, family, degree)
     vectorfunctionspace_tests(vm, family, degree)
 
+
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
 def test_functionspaces_parallel(parentmesh, family, degree):
     test_functionspaces(parentmesh, family, degree)
-
-# remove this before final merge
-if __name__ == "__main__":
-    test_generate_2d()
-    import pytest, sys
-    pytest.main([sys.argv[0]])

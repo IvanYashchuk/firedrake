@@ -1013,6 +1013,7 @@ class ExtrudedMeshTopology(MeshTopology):
             cell_list += list(range(col, col + (self.layers - 1)))
         return cell_data[cell_list]
 
+
 class VertexOnlyMeshTopology(MeshTopology):
     """
     Representation of a vertex-only mesh topology immersed within
@@ -1036,11 +1037,9 @@ class VertexOnlyMeshTopology(MeshTopology):
         if reorder is True:
             raise NotImplementedError("Mesh reordering not implemented for vertex only meshes yet.")
 
-        ## BEGIN TODO
-
+        # BEGIN TODO
         # dmplex.validate_mesh(plex) # create equivalent for DMSwarm?
-
-        ## END TODO
+        # END TODO
 
         swarm.setFromOptions()
 
@@ -1087,8 +1086,6 @@ class VertexOnlyMeshTopology(MeshTopology):
                 self._vertex_numbering = self.create_section(entity_dofs)
 
         self._callback = callback
-
-    ## BEGIN TODO
 
     @property
     def cell_closure(self):
@@ -1165,6 +1162,7 @@ class VertexOnlyMeshTopology(MeshTopology):
             return 0
         else:
             return self.num_vertices()
+
 
 class MeshGeometry(ufl.Mesh, MeshGeometryMixin):
     """A representation of mesh topology and geometry."""
@@ -1690,6 +1688,7 @@ def ExtrudedMesh(mesh, layers, layer_height=None, extrusion_type='uniform', kern
 
     return self
 
+
 def VertexOnlyMesh(mesh, vertexcoords, comm=COMM_WORLD):
     """
     Create a vertex only mesh, immersed in a given mesh, with vertices
@@ -1740,7 +1739,7 @@ def VertexOnlyMesh(mesh, vertexcoords, comm=COMM_WORLD):
                                                            dim=gdim)
 
         coordinates_data = dmswarm.reordered_coords(swarm, coordinates_fs.dm.getDefaultSection(),
-                                                   (self.num_vertices(), gdim))
+                                                    (self.num_vertices(), gdim))
 
         coordinates = function.CoordinatelessFunction(coordinates_fs,
                                                       val=coordinates_data,
@@ -1751,16 +1750,6 @@ def VertexOnlyMesh(mesh, vertexcoords, comm=COMM_WORLD):
     vmesh._callback = callback
     return vmesh
 
-
-
-    # Can I set from coordinates (which is a firedrake Function)? If so,
-    # what mesh should it be defined on?
-    # How would I deal with the points moving if the geometry is set by
-    # a function?
-
-    cell = ufl.Cell('vertex')
-    element = ufl.FiniteElement("DG", cell, 0)
-    newmesh = MeshGeometry.__new__(MeshGeometry, element)
 
 def _pic_swarm_in_plex(plex, coords, **kwargs):
     """
@@ -1837,6 +1826,7 @@ def _pic_swarm_in_plex(plex, coords, **kwargs):
     # mesh topologies.
 
     return swarm
+
 
 def SubDomainData(geometric_expr):
     """Creates a subdomain data object from a boolean-valued UFL expression.
