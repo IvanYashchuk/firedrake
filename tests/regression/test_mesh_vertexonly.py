@@ -146,6 +146,15 @@ def test_generate(parentmesh):
 def test_generate_parallel(parentmesh):
     test_generate(parentmesh)
 
+
+@pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.xfail(raises=NotImplementedError)
+def test_extrude(parentmesh):
+    inputcoords, inputcoordslocal = cell_midpoints(parentmesh)
+    vm = VertexOnlyMesh(parentmesh, inputcoords)
+    ExtrudedMesh(vm, 1)
+
+
 # Mesh usage tests
 
 def functionspace_tests(vm, family, degree):

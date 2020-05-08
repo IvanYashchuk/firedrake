@@ -846,6 +846,9 @@ class ExtrudedMeshTopology(MeshTopology):
         # A cache of shared function space data on this mesh
         self._shared_data_cache = defaultdict(dict)
 
+        if isinstance(mesh.topology, VertexOnlyMeshTopology):
+            raise NotImplementedError("Extrusion not implemented for VertexOnlyMeshTopology")
+
         mesh.init()
         self._base_mesh = mesh
         self.comm = mesh.comm
