@@ -116,18 +116,28 @@ def test_pic_swarm_in_plex_2d_3procs():
 # Mesh Generation Tests
 
 
-def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdim):
-    """Assumes all inputvertexcoordslocal are the correct process local
-    vertex coords in the vm"""
+def verify_vertexonly_mesh(m, vm, inputvertexcoords, gdim):
+    """
+    Check that VertexOnlyMesh `vm` immersed in parent mesh `v` with
+    creation coordinates `inputvertexcoords` and geometric dimension
+    `gdim` behaves as expected
+    """
     assert m.geometric_dimension() == gdim
     # Correct dims
     assert vm.geometric_dimension() == gdim
     assert vm.topological_dimension() == 0
     # Can initialise
     vm.init()
+    # Find in-bounds and non-halo-region input coordinates
+    in_bounds = []
+    core, owned, ghost = m.cell_set.sizes
+    for i in range(len(inputvertexcoords)):
+        cell_id = m.locate_cell(inputvertexcoords[i])
+        if cell_id is not None and cell_id < owned:
+            in_bounds.append(i)
     # Correct coordinates (though not guaranteed to be in same order)
-    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(inputvertexcoordslocal)
-    assert np.all(np.isin(inputvertexcoordslocal, vm.coordinates.dat.data_ro))
+    assert np.shape(vm.coordinates.dat.data_ro) == np.shape(inputvertexcoords[in_bounds])
+    assert np.all(np.isin(inputvertexcoords[in_bounds], vm.coordinates.dat.data_ro))
     # Coordinates located in correct cells of parent mesh
     V = VectorFunctionSpace(m, "DG", 0)
     f = Function(V).interpolate(m.coordinates)
@@ -136,10 +146,10 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdi
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
-    assert np.shape(vm.cell_closure) == (len(inputvertexcoordslocal), 1)
+    assert np.shape(vm.cell_closure) == (len(inputvertexcoords[in_bounds]), 1)
     with pytest.raises(AttributeError):
         vm.cell_to_facets
-    assert vm.num_cells() == len(inputvertexcoordslocal) == vm.cell_set.size
+    assert vm.num_cells() == len(inputvertexcoords[in_bounds]) == vm.cell_set.size
     assert vm.num_facets() == 0
     assert vm.num_faces() == vm.num_entities(2) == 0
     assert vm.num_edges() == vm.num_entities(1) == 0
@@ -150,7 +160,7 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdi
 def test_generate(parentmesh):
     inputcoords, inputcoordslocal = cell_midpoints(parentmesh)
     vm = VertexOnlyMesh(parentmesh, inputcoords)
-    verify_vertexonly_mesh(parentmesh, vm, inputcoords, inputcoordslocal, parentmesh.geometric_dimension())
+    verify_vertexonly_mesh(parentmesh, vm, inputcoords, parentmesh.geometric_dimension())
 
 
 @pytest.mark.parallel(nprocs=2)
