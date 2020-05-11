@@ -238,34 +238,57 @@ def functionspace_tests(vm, family, degree):
         g.project(x)
     elif gdim == 2:
         x, y = SpatialCoordinate(vm)
-        f.interpolate(x+y)
-        g.project(x+y)
+        f.interpolate(x*y)
+        g.project(x*y)
     elif gdim == 3:
         x, y, z = SpatialCoordinate(vm)
-        f.interpolate(x+y+z)
-        g.project(x+y+z)
+        f.interpolate(x*y*z)
+        g.project(x*y*z)
     # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
-    assert np.allclose(f.dat.data_ro, np.sum(vm.coordinates.dat.data_ro, 1))
-    # Projection is the same as interpolation
+    assert np.allclose(f.dat.data_ro, np.prod(vm.coordinates.dat.data_ro, 1))
+    # Galerkin Projection of expression is the same as interpolation of
+    # that expression since both exactly point evaluate the expression.
     assert np.allclose(f.dat.data_ro, g.dat.data_ro)
-    # Assembly works as expected
+    # Assembly works as expected - global assembly (integration) of a
+    # constant on a vertex only mesh is evaluation of that constant
+    # num_vertices (globally) times
     f.interpolate(Constant(2))
     assert np.isclose(assemble(f*dx), 2*num_cells_mpi_global)
 
 
 def vectorfunctionspace_tests(vm, family, degree):
+    # Prep: Get number of cells
+    num_cells_mpi_global = MPI.COMM_WORLD.allreduce(vm.num_cells(), op=MPI.SUM)
     # Can create function space
     V = VectorFunctionSpace(vm, family, degree)
-    # Can create function on function spaces
+    # Can create functions on function spaces
     f = Function(V)
-    # Can interpolate onto functions
+    g = Function(V)
+    # Can interpolate and Galerkin project onto functions
     x = SpatialCoordinate(vm)
     f.interpolate(2*as_vector(x))
+    g.project(2*as_vector(x))
     # Get exact values at coordinates with maintained ordering
     assert np.shape(f.dat.data_ro)[0] == np.shape(vm.coordinates.dat.data_ro)[0]
     assert np.allclose(f.dat.data_ro, 2*vm.coordinates.dat.data_ro)
-    # TODO add assembly and Galerkin projection
+    # Galerkin Projection of expression is the same as interpolation of
+    # that expression since both exactly point evaluate the expression.
+    assert np.allclose(f.dat.data_ro, g.dat.data_ro)
+    # Assembly works as expected - global assembly (integration) of a
+    # constant on a vertex only mesh is evaluation of that constant
+    # num_vertices (globally) times. Note that we get a vertex cell for
+    # each geometric dimension so we have to sum over geometric
+    # dimension too.
+    gdim = vm.geometric_dimension()
+    if gdim == 1:
+        f.interpolate(Constant((1,)))
+    if gdim == 2:
+        f.interpolate(Constant((1, 1)))
+    if gdim == 3:
+        f.interpolate(Constant((1, 1, 1)))
+    assert np.isclose(assemble(inner(f, f)*dx), num_cells_mpi_global*gdim)
+
 
 
 """Families and degrees to test function spaces on VertexOnlyMesh"""
