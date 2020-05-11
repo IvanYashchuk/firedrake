@@ -42,6 +42,20 @@ parentmeshes = [
 ]
 
 
+"""Number of random coordinates"""
+ncoords = [1, 10, 100]
+
+
+def random_coords(n, gdim):
+    """
+    Get an array of `n` random coordinates with coordinate elements
+    between -0.5 and 1.5. The number of elements per coordinate is given
+    by `gdim`.
+    """
+    a, b = -0.5, 1.5
+    return (b - a) * np.random.random_sample(size=(10, gdim)) + a
+
+
 # pic swarm tests
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
@@ -115,7 +129,6 @@ def test_pic_swarm_in_plex_2d_3procs():
 
 # Mesh Generation Tests
 
-
 def verify_vertexonly_mesh(m, vm, inputvertexcoords, gdim):
     """
     Check that VertexOnlyMesh `vm` immersed in parent mesh `v` with
@@ -138,11 +151,6 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, gdim):
     # Correct coordinates (though not guaranteed to be in same order)
     assert np.shape(vm.coordinates.dat.data_ro) == np.shape(inputvertexcoords[in_bounds])
     assert np.all(np.isin(inputvertexcoords[in_bounds], vm.coordinates.dat.data_ro))
-    # Coordinates located in correct cells of parent mesh
-    V = VectorFunctionSpace(m, "DG", 0)
-    f = Function(V).interpolate(m.coordinates)
-    for i in range(len(vm.coordinates.dat.data_ro)):
-        assert all(f.dat.data_ro[m.locate_cell(vm.coordinates.dat.data_ro[i])] == vm.coordinates.dat.data_ro[i])
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
@@ -157,16 +165,41 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, gdim):
 
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
-def test_generate(parentmesh):
+def test_generate_cell_midpoints(parentmesh):
+    """
+    Generate cell midpoints for mesh m and check they lie in the correct cells
+    """
     inputcoords, inputcoordslocal = cell_midpoints(parentmesh)
     vm = VertexOnlyMesh(parentmesh, inputcoords)
-    verify_vertexonly_mesh(parentmesh, vm, inputcoords, parentmesh.geometric_dimension())
+    # Midpoints located in correct cells of parent mesh
+    V = VectorFunctionSpace(parentmesh, "DG", 0)
+    f = Function(V).interpolate(parentmesh.coordinates)
+    for i in range(len(vm.coordinates.dat.data_ro)):
+        cell_id = parentmesh.locate_cell(vm.coordinates.dat.data_ro[i])
+        if cell_id is not None:
+            assert all(f.dat.data_ro[cell_id] == vm.coordinates.dat.data_ro[i])
 
 
-@pytest.mark.parallel(nprocs=2)
+@pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
-def test_generate_parallel(parentmesh):
-    test_generate(parentmesh)
+def test_generate_cell_midpoints_parallel(parentmesh):
+    test_generate_cell_midpoints(parentmesh)
+
+
+@pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.parametrize("n", ncoords)
+def test_generate_random(parentmesh, n):
+    gdim = parentmesh.geometric_dimension()
+    inputcoords = random_coords(n, gdim)
+    vm = VertexOnlyMesh(parentmesh, inputcoords)
+    verify_vertexonly_mesh(parentmesh, vm, inputcoords, gdim)
+
+
+@pytest.mark.parallel
+@pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.parametrize("n", ncoords)
+def test_generate_random_parallel(parentmesh, n):
+    test_generate_random(parentmesh, n)
 
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
