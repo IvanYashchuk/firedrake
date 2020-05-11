@@ -133,7 +133,8 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, gdim):
     """
     Check that VertexOnlyMesh `vm` immersed in parent mesh `v` with
     creation coordinates `inputvertexcoords` and geometric dimension
-    `gdim` behaves as expected
+    `gdim` behaves as expected. `inputvertexcoords` should be the same
+    for all MPI ranks to avoid hanging.
     """
     assert m.geometric_dimension() == gdim
     # Correct dims
@@ -174,8 +175,16 @@ def test_generate_cell_midpoints(parentmesh):
     # Midpoints located in correct cells of parent mesh
     V = VectorFunctionSpace(parentmesh, "DG", 0)
     f = Function(V).interpolate(parentmesh.coordinates)
-    for i in range(len(vm.coordinates.dat.data_ro)):
-        cell_id = parentmesh.locate_cell(vm.coordinates.dat.data_ro[i])
+    # Check size of biggest len(vm.coordinates.dat.data_ro) so
+    # locate_cell can be called on every processor
+    max_len = MPI.COMM_WORLD.allreduce(len(vm.coordinates.dat.data_ro), op=MPI.SUM)
+    out_of_mesh_point = np.empty(shape=(1, parentmesh.geometric_dimension()))
+    out_of_mesh_point.fill(np.inf)
+    for i in range(max_len):
+        if i < len(vm.coordinates.dat.data_ro):
+            cell_id = parentmesh.locate_cell(vm.coordinates.dat.data_ro[i])
+        else:
+            cell_id = parentmesh.locate_cell(out_of_mesh_point)  # should return None
         if cell_id is not None:
             assert all(f.dat.data_ro[cell_id] == vm.coordinates.dat.data_ro[i])
 
