@@ -95,8 +95,6 @@ def test_pic_swarm_in_plex(parentmesh):
     cell_indexes = parentmesh.cell_closure[:, -1]
     for index in localparentcellindices:
         assert np.any(index == cell_indexes)
-    # Check each point has the correct cell index associated with it
-    # TODO
 
 
 @pytest.mark.parallel
@@ -130,6 +128,11 @@ def verify_vertexonly_mesh(m, vm, inputvertexcoords, inputvertexcoordslocal, gdi
     # Correct coordinates (though not guaranteed to be in same order)
     assert np.shape(vm.coordinates.dat.data_ro) == np.shape(inputvertexcoordslocal)
     assert np.all(np.isin(inputvertexcoordslocal, vm.coordinates.dat.data_ro))
+    # Coordinates located in correct cells of parent mesh
+    V = VectorFunctionSpace(m, "DG", 0)
+    f = Function(V).interpolate(m.coordinates)
+    for i in range(len(vm.coordinates.dat.data_ro)):
+        assert all(f.dat.data_ro[m.locate_cell(vm.coordinates.dat.data_ro[i])] == vm.coordinates.dat.data_ro[i])
     # Correct parent topology
     assert vm._parent_mesh is m.topology
     # Check other properties
