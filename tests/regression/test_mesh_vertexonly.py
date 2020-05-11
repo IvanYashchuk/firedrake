@@ -43,7 +43,7 @@ parentmeshes = [
 
 
 """Number of random coordinates"""
-ncoords = [1, 10, 100]
+ncoords = [0, 1, 100]
 
 
 def random_coords(n, gdim):
