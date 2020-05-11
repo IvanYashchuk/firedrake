@@ -1291,7 +1291,7 @@ values from f.)"""
         coords_max.dat.data.fill(-np.inf)
 
         cell_node_list = self.coordinates.function_space().cell_node_list
-        nodes_per_cell = len(cell_node_list[0])
+        nodes_per_cell = cell_node_list.shape[1]
 
         domain = "{{[d, i]: 0 <= d < {0} and 0 <= i < {1}}}".format(gdim, nodes_per_cell)
         instructions = """
