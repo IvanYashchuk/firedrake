@@ -277,9 +277,10 @@ families_and_degrees = [
 
 
 @pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.parametrize("n", ncoords)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
-def test_functionspaces(parentmesh, family, degree):
-    vertexcoords, vertexcoordslocal = cell_midpoints(parentmesh)
+def test_functionspaces(parentmesh, n, family, degree):
+    vertexcoords = random_coords(n, parentmesh.geometric_dimension())
     vm = VertexOnlyMesh(parentmesh, vertexcoords)
     functionspace_tests(vm, family, degree)
     vectorfunctionspace_tests(vm, family, degree)
@@ -287,6 +288,7 @@ def test_functionspaces(parentmesh, family, degree):
 
 @pytest.mark.parallel
 @pytest.mark.parametrize("parentmesh", parentmeshes)
+@pytest.mark.parametrize("n", ncoords)
 @pytest.mark.parametrize(("family", "degree"), families_and_degrees)
-def test_functionspaces_parallel(parentmesh, family, degree):
-    test_functionspaces(parentmesh, family, degree)
+def test_functionspaces_parallel(parentmesh, n, family, degree):
+    test_functionspaces(parentmesh, n, family, degree)
