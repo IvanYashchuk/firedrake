@@ -742,8 +742,8 @@ class LocalLoopyKernelBuilder(object):
                                         target=TARGET))
 
         if self.needs_mesh_layers:
-            args.append(loopy.GlobalArg(self.layer_arg, shape=(),
-                                        dtype=np.int32, target=TARGET))
+            args.append(loopy.TemporaryVariable(self.layer_arg, shape=(),
+                                        dtype=np.int32, target=TARGET, address_space=loopy.AddressSpace.GLOBAL))
 
         for tensor_temp in tensor2temp.values():
             args.append(tensor_temp)
